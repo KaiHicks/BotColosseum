@@ -3,9 +3,19 @@ import os
 import random
 import sys
 from abc import ABC, abstractmethod
+from typing import List
 
 class GameClient(ABC):
-	def __init__(self, bot_module):
+	"""
+	Handles host-bot communications.
+	"""
+	def __init__(self, bot_module:str):
+		"""
+		params:
+			bot_module:str - A string representing the arguments to pass to the
+				interpreter call. 
+				i.e. `python3 -m <bot_module>`
+		"""
 		self._points = 0
 		self._bot_module = bot_module
 		
@@ -33,10 +43,16 @@ class GameClient(ABC):
 			os.execlp('python3', 'Bot', '-m', self._bot_module)
 	
 	def _send(self, msg):
+		"""
+		Send msg to the bot
+		"""
 		json_ = json.dumps(msg)
 		os.write(self._write, bytes(json_+'\n', 'UTF-8'))
 	
 	def _recv(self):
+		"""
+		Wait for and return an incoming message from the bot
+		"""
 		while True:
 			msg = self._read.readline()
 			if msg:
@@ -44,16 +60,28 @@ class GameClient(ABC):
 				return response
 	
 	def _kill_child(self):
+		"""
+		Kill the bot process
+		"""
 		self._send({'stop': True})
 	
-	def take_turn(self):
+	def take_turn(self)->dict:
+		"""
+		Signal the bot to take their turn and return their response
+		"""
 		self._send({'your_turn': True})
-		return self._recv()['guess']
+		return self._recv()
 	
 	def update(self, **kwargs):
+		"""
+		Update the bot to a new gamestate. Called when a bot makes their move. 
+		"""
 		self._send({'update': kwargs})
 	
 	def new_game(self, game_params):
+		"""
+		Signal the bot that a new game has started. 
+		"""
 		self._send({
 			'new_game': True,
 			'game_params': game_params
@@ -62,6 +90,9 @@ class GameClient(ABC):
 class GameTracker(ABC):
 	@abstractmethod
 	def update(self, *args, **kwargs):
+		"""
+		Handle gamestate updates
+		"""
 		...
 	
 	@property
@@ -70,7 +101,18 @@ class GameTracker(ABC):
 		...
 
 class GameHoster(ABC):
-	def __init__(self, player_modules, shuffle_players=True):
+	"""
+	Hosts a game and manages the bots.
+	"""
+	def __init__(self, player_modules:List[str], shuffle_players=True):
+		"""
+		params:
+			player_modules:List[str] - A list of strings representing the 
+				arguments to pass to the interpreter calls. 
+				i.e. `python3 -m <bot_module>`
+			shuffle_players=True - If True, the player order will be shuffled 
+				every time a new game is started. 
+		"""
 		self._players = ShuffledList(GameClient(pm)
 			for pm in player_modules)
 		self._total_points = [0 for p in self._players]
@@ -103,11 +145,18 @@ class GameHoster(ABC):
 		return [s/self._n_games for s in self._total_points]
 	
 	@abstractmethod
-	def play(self, *args, **kwargs):
+	def play(self, *args, **kwargs)->List[int]:
 		...
 
 class Bot(ABC):
-	def __init__(self, tracker_type):
+	"""
+	Base class for a bot. 
+	"""
+	def __init__(self, tracker_type:type):
+		"""
+		params:
+			tracker_type:type - The type of the associated GameTracker
+		"""
 		self._read = os.fdopen(sys.stdin.fileno(), 'r')
 		self._write = sys.stdout.fileno()
 		self._tracker_type = tracker_type
@@ -153,14 +202,34 @@ class Bot(ABC):
 	
 	@abstractmethod
 	def take_turn(self):
+		"""
+		The logic for the bot to take their turn
+		returns:
+			The move that the bot wishes to make
+		"""
 		...
 	
 	@abstractmethod
 	def new_game(self):
+		"""
+		A 'reset' method to start a new game. This does not have to reset the 
+		bot to its original state. The reason to use a resetter over 
+		re-instantiating or re-initializing the object is to allow for 
+		'remembering' behavior. 
+		"""
 		...
 
 class ShuffledList:
+	"""
+	An easily shufflable list that remembers the original order.
+	"""
 	def __init__(self, items, mapping=None):
+		"""
+		params:
+			items:iterable - The items to populate the list
+			mappting:iterable=None - The default ordering of the list. Must 
+				contain every integer from zero to len(items)-1 exactly once. 
+		"""
 		self._items = list(items)
 		self._mapping = mapping or list(range(len(self._items)))
 	
@@ -182,6 +251,9 @@ class ShuffledList:
 		random.shuffle(self._mapping)
 	
 	def unshuffle(self):
+		"""
+		Revert the list back to its original state. 
+		"""
 		self._mapping = list(range(len(self._items)))
 	
 	def __str__(self):
