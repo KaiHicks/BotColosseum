@@ -72,7 +72,7 @@ class GameClient(ABC):
 		self._send({'your_turn': True})
 		return self._recv()
 	
-	def update(self, **kwargs):
+	def update(self, *args, **kwargs):
 		"""
 		Update the bot to a new gamestate. Called when a bot makes their move. 
 		"""
@@ -88,6 +88,9 @@ class GameClient(ABC):
 		})
 
 class GameTracker(ABC):
+	def __init__(self, n_players, points=None):
+		self.points = points or [0 for _ in range(n_players)]
+	
 	@abstractmethod
 	def update(self, *args, **kwargs):
 		"""
@@ -122,9 +125,9 @@ class GameHoster(ABC):
 	def start_game(self, *args, **kwargs):
 		if self._shuffle_players:
 			self._players.shuffle
-		points = self.play(*args, **kwargs)
+		tracker = self.play(*args, **kwargs)
 		
-		points = ShuffledList(points, self._players.mapping)
+		points = ShuffledList(tracker.points, self._players.mapping)
 		self._players.unshuffle
 		points.unshuffle
 		for i, s in enumerate(points):
@@ -145,7 +148,7 @@ class GameHoster(ABC):
 		return [s/self._n_games for s in self._total_points]
 	
 	@abstractmethod
-	def play(self, *args, **kwargs)->List[int]:
+	def play(self, *args, **kwargs)->GameTracker:
 		...
 
 class Bot(ABC):
@@ -232,6 +235,9 @@ class ShuffledList:
 		"""
 		self._items = list(items)
 		self._mapping = mapping or list(range(len(self._items)))
+	
+	def __len__(self):
+		return len(self._items)
 	
 	def __getitem__(self, i):
 		return self._items[self._mapping[i]]
