@@ -1,4 +1,4 @@
-#BotColosseum
+# BotColosseum
 
 An environment to allow for bot writing competitions
 
