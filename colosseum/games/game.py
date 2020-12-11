@@ -35,7 +35,6 @@ class GameClient(ABC):
 			self._is_parent = False
 			os.close(parent_read)
 			os.close(parent_write)
-			self._read = os.fdopen(child_read, 'r', 1)
 			
 			os.dup2(child_read, sys.stdin.fileno())
 			os.dup2(child_write, sys.stdout.fileno())
@@ -63,13 +62,13 @@ class GameClient(ABC):
 		"""
 		Kill the bot process
 		"""
-		self._send({'stop': True})
+		self._send({'stop': {}})
 	
 	def take_turn(self)->dict:
 		"""
 		Signal the bot to take their turn and return their response
 		"""
-		self._send({'your_turn': True})
+		self._send({'your_turn': {}})
 		return self._recv()
 	
 	def update(self, *args, **kwargs):
@@ -83,13 +82,16 @@ class GameClient(ABC):
 		Signal the bot that a new game has started. 
 		"""
 		self._send({
-			'new_game': True,
-			'game_params': game_params
+			'new_game': game_params,
 		})
 
 class GameTracker(ABC):
 	def __init__(self, n_players, points=None):
 		self.points = points or [0 for _ in range(n_players)]
+	
+	@abstractmethod
+	def make_move(self, *args, **kwargs)->dict:
+		...
 	
 	@abstractmethod
 	def update(self, *args, **kwargs):
@@ -149,77 +151,6 @@ class GameHoster(ABC):
 	
 	@abstractmethod
 	def play(self, *args, **kwargs)->GameTracker:
-		...
-
-class Bot(ABC):
-	"""
-	Base class for a bot. 
-	"""
-	def __init__(self, tracker_type:type):
-		"""
-		params:
-			tracker_type:type - The type of the associated GameTracker
-		"""
-		self._read = os.fdopen(sys.stdin.fileno(), 'r')
-		self._write = sys.stdout.fileno()
-		self._tracker_type = tracker_type
-		
-		while(True):
-			msg = self._recv()
-			if msg.get('stop', False):
-				exit()
-			elif msg.get('new_game', False):
-				game_params = msg.get('game_params', False)
-				if not game_params:
-					raise Exception(
-						'New game requested but no game parameters given'
-					)
-				
-				self._new_game(game_params)
-			else:
-				update = msg.get('update', {})
-				if update:
-					self._game.update(**update)
-				if msg.get('your_turn', False):
-					guess = self.take_turn()
-					self._send(guess=guess)
-	
-	def _send(self, **kwargs):
-		json_out = json.dumps(kwargs)
-		os.write(self._write, bytes(json_out+'\n', 'UTF-8'))
-	
-	def _recv(self):
-		while True:
-			msg = self._read.readline()
-			if msg:
-				response = json.loads(msg[:-1])
-				return response
-	
-	def _new_game(self, game_params):
-		self._game = self._tracker_type(**game_params)
-		self.new_game()
-	
-	@property
-	def game(self):
-		return self._game
-	
-	@abstractmethod
-	def take_turn(self):
-		"""
-		The logic for the bot to take their turn
-		returns:
-			The move that the bot wishes to make
-		"""
-		...
-	
-	@abstractmethod
-	def new_game(self):
-		"""
-		A 'reset' method to start a new game. This does not have to reset the 
-		bot to its original state. The reason to use a resetter over 
-		re-instantiating or re-initializing the object is to allow for 
-		'remembering' behavior. 
-		"""
 		...
 
 class ShuffledList:

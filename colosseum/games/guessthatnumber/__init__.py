@@ -30,6 +30,9 @@ class GTNTracker(GameTracker):
 		self._lower = lower
 		self._is_done = False
 	
+	def make_move(self, guess, *args, **kwargs):
+		return {'guess':guess}
+	
 	def update(self, player:int, guess:int, higher:bool, correct:bool):
 		"""
 		params:

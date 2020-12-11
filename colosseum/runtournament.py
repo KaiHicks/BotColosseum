@@ -6,7 +6,7 @@ players = [
 ]
 hoster = gtn.GTNHoster(players)
 
-for _ in range(1000):
+for _ in range(10):
 	hoster.start_game(100)
 
 print(hoster.avg_points)
