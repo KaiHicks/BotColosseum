@@ -57,15 +57,19 @@ class GameClient(ABC):
 			if msg:
 				response = json.loads(msg[:-1])
 				if logparams:=response.pop('logmsg', False):
+					logparams['file'] = sys.stdout
 					print(
 						*logparams.get('args', []),
 						**logparams.get('kwargs', {})
 					)
 				if logparams:=response.pop('getinput', False):
-					inputstr = input(
-						*logparams.get('args', []),
-						**logparams.get('kwargs', {})
-					)
+					try:
+						inputstr = input(
+							*logparams.get('args', []),
+							**logparams.get('kwargs', {})
+						)
+					except EOFError as e:
+						self._send({'error': str(e)})
 					self._send({'input': inputstr})
 				if response:
 					return response

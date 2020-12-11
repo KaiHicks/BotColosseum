@@ -6,14 +6,10 @@ game ends when some player guesses the secret number correctly. That player is
 the winner. 
 """
 
-import json
-import os
 import random
-import sys
 from itertools import cycle
-from typing import List
 
-from ..game import GameClient, GameTracker, GameHoster
+from ..game import GameTracker, GameHoster
 
 class GTNTracker(GameTracker):
 	def __init__(self, n_players:int, upper:int, lower:int=0, playerid:int=-1):
