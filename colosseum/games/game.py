@@ -56,7 +56,19 @@ class GameClient(ABC):
 			msg = self._read.readline()
 			if msg:
 				response = json.loads(msg[:-1])
-				return response
+				if logparams:=response.pop('logmsg', False):
+					print(
+						*logparams.get('args', []),
+						**logparams.get('kwargs', {})
+					)
+				if logparams:=response.pop('getinput', False):
+					inputstr = input(
+						*logparams.get('args', []),
+						**logparams.get('kwargs', {})
+					)
+					self._send({'input': inputstr})
+				if response:
+					return response
 	
 	def _kill_child(self):
 		"""

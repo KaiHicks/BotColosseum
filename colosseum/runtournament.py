@@ -3,6 +3,7 @@ from .games import guessthatnumber as gtn
 players = [
 	'colosseum.games.guessthatnumber.linearbot',
 	'colosseum.games.guessthatnumber.binarybot',
+	'colosseum.games.guessthatnumber.human',
 ]
 hoster = gtn.GTNHoster(players)
 

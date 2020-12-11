@@ -1,5 +1,5 @@
 from . import GTNTracker
-from ..bot import Bot
+from ..bot import Bot, log
 
 class Linear(Bot):
 	def __init__(self):
