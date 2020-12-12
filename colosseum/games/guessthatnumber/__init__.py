@@ -9,7 +9,7 @@ the winner.
 import random
 from itertools import cycle
 
-from ..game import GameTracker, GameHoster
+from colosseum.games.game import GameTracker, GameHoster
 
 class GTNTracker(GameTracker):
 	def __init__(self, n_players:int, upper:int, lower:int=0, playerid:int=-1):
@@ -90,6 +90,9 @@ class GTNHoster(GameHoster):
 			guess = response.get('guess', None)
 			if not isinstance(guess, int) or not (lower <= guess < upper):
 				forfeited.add(i)
+				if len(forfeited) == len(self._players):
+					break
+				continue
 				
 			higher = guess < secret_num
 			correct = guess == secret_num

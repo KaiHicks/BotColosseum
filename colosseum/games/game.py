@@ -1,9 +1,10 @@
-import json
 import os
 import random
 import sys
 from abc import ABC, abstractmethod
 from typing import List
+
+from colosseum.games.ipc import FileNoComs
 
 class GameClient(ABC):
 	"""
@@ -28,8 +29,12 @@ class GameClient(ABC):
 			self._is_parent = True
 			os.close(child_write)
 			os.close(child_read)
-			self._read = os.fdopen(parent_read, 'r', 1)
-			self._write = parent_write
+			
+			self._coms = FileNoComs(
+				False,
+				read_fileno=parent_read,
+				write_fileno=parent_write
+			)
 		else:
 			# We are the child
 			self._is_parent = False
@@ -41,65 +46,33 @@ class GameClient(ABC):
 			
 			os.execlp('python3', 'Bot', '-m', self._bot_module)
 	
-	def _send(self, msg):
-		"""
-		Send msg to the bot
-		"""
-		json_ = json.dumps(msg)
-		os.write(self._write, bytes(json_+'\n', 'UTF-8'))
-	
-	def _recv(self):
-		"""
-		Wait for and return an incoming message from the bot
-		"""
-		while True:
-			msg = self._read.readline()
-			if msg:
-				response = json.loads(msg[:-1])
-				if logparams:=response.pop('logmsg', False):
-					logparams['file'] = sys.stdout
-					print(
-						*logparams.get('args', []),
-						**logparams.get('kwargs', {})
-					)
-				if logparams:=response.pop('getinput', False):
-					try:
-						inputstr = input(
-							*logparams.get('args', []),
-							**logparams.get('kwargs', {})
-						)
-					except EOFError as e:
-						self._send({'error': str(e)})
-					self._send({'input': inputstr})
-				if response:
-					return response
-	
 	def _kill_child(self):
 		"""
 		Kill the bot process
 		"""
-		self._send({'stop': {}})
+		self._coms.send(**{'stop': {}})
 	
 	def take_turn(self)->dict:
 		"""
 		Signal the bot to take their turn and return their response
 		"""
-		self._send({'your_turn': {}})
-		return self._recv()
+		self._coms.send(**{'your_turn': {}})
+		return self._coms.recv()
 	
 	def update(self, *args, **kwargs):
 		"""
 		Update the bot to a new gamestate. Called when a bot makes their move. 
 		"""
-		self._send({'update': kwargs})
+		self._coms.send(**{'update': kwargs})
 	
 	def new_game(self, game_params):
 		"""
 		Signal the bot that a new game has started. 
 		"""
-		self._send({
-			'new_game': game_params,
-		})
+		self._coms.send(new_game=game_params)
+	
+	def __del__(self):
+		self._kill_child()
 
 class GameTracker(ABC):
 	def __init__(self, n_players, points=None):

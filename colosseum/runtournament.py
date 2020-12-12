@@ -2,7 +2,7 @@ from time import time
 
 from progress.bar import FillingSquaresBar
 
-from .games import guessthatnumber as gtn
+from colosseum.games import guessthatnumber as gtn
 
 players = [
 	'colosseum.games.guessthatnumber.linearbot',
@@ -11,7 +11,7 @@ players = [
 ]
 hoster = gtn.GTNHoster(players)
 
-n = 10000
+n = 1000
 print(f'Running {n} games...')
 cum_time = 0
 bar = FillingSquaresBar(

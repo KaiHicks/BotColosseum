@@ -1,25 +1,17 @@
-import json
-import os
 import sys
 from abc import ABC, abstractmethod
-from functools import partial
 from typing import Callable, Dict
+
+from colosseum.games.ipc import FileNoComs
 
 pipeout_fileno = sys.stdout.fileno()
 pipein_fileno = sys.stdin.fileno()
-_read = os.fdopen(pipein_fileno, 'r')
-_write = pipeout_fileno
 
-def _send(**kwargs):
-		json_out = json.dumps(kwargs)
-		os.write(_write, bytes(json_out+'\n', 'UTF-8'))
-
-def _recv():
-	while True:
-		msg = _read.readline()
-		if msg:
-			response = json.loads(msg[:-1])
-			return response
+_coms = FileNoComs(
+	True,
+	read_fileno=pipein_fileno,
+	write_fileno=pipeout_fileno
+)
 
 def log(*args, **kwargs):
 	"""
@@ -29,7 +21,7 @@ def log(*args, **kwargs):
 	The parent process will only service the request when it expects a message
 	from this process. I.e. during this bot's turn. 
 	"""
-	_send(logmsg={'args': args, 'kwargs': kwargs})
+	_coms.send(log={'args': args, 'kwargs': kwargs})
 
 def get_input(*args, **kwargs):
 	"""
@@ -39,9 +31,9 @@ def get_input(*args, **kwargs):
 	The parent process will only service the request when it expects a message
 	from this process. I.e. during this bot's turn. 
 	"""
-	_send(getinput={'args': args, 'kwargs':kwargs})
-	response = _recv()
-	return response.get('input', '')
+	_coms.send(input={'args': args, 'kwargs':kwargs})
+	response = _coms.recv()
+	return response.get('s', '')
 
 class Bot(ABC):
 	"""
@@ -58,7 +50,7 @@ class Bot(ABC):
 			'update': self._update, 'your_turn': self._take_turn}
 		
 		while(True):
-			msg = _recv()
+			msg = _coms.recv()
 			for command, params in msg.items():
 				# I cannot use the walrus operator since this might run on 
 				# earlier versions of python
@@ -80,7 +72,7 @@ class Bot(ABC):
 	
 	def _take_turn(self, **kwargs):
 		response = self.take_turn()
-		_send(**response)
+		_coms.send(**response)
 	
 	def _new_game(self, **game_params):
 		self._game = self._tracker_type(**game_params)

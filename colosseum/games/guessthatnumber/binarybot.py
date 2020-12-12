@@ -1,5 +1,5 @@
-from . import GTNTracker
-from ..bot import Bot
+from colosseum.games.guessthatnumber import GTNTracker
+from colosseum.games.bot import Bot
 
 class BinSearch(Bot):
 	def __init__(self):
