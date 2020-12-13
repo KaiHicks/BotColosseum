@@ -20,7 +20,7 @@ class GTNTracker(GameTracker):
 			upper:int - Exclusive upper bound of the secret number
 			lower:int=0 - Inclusive lower bound of the secret number
 			playerid:int=-1 - The id of the player that created this tracker. 
-					If the tracker was created by the host, the id is -1 (default).
+				If the tracker was created by the host, the id is -1 (default).
 		"""
 		self._upper = upper
 		self._lower = lower

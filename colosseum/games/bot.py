@@ -69,6 +69,7 @@ class Bot(ABC):
 	
 	def _update(self, **kwargs):
 		self._game.update(**kwargs)
+		self.update()
 	
 	def _take_turn(self, **kwargs):
 		response = self.take_turn()
@@ -89,6 +90,10 @@ class Bot(ABC):
 		returns:
 			The move that the bot wishes to make
 		"""
+		...
+	
+	@abstractmethod
+	def update(self):
 		...
 	
 	@abstractmethod

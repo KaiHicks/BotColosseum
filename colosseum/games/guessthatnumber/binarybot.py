@@ -9,6 +9,9 @@ class BinSearch(Bot):
 		guess = self.game.lower + (self.game.upper - self.game.lower)//2
 		return self.game.make_move(guess)
 	
+	def update(self):
+		pass
+	
 	def new_game(self, **kwargs):
 		pass
 

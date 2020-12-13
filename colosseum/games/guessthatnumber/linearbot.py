@@ -8,6 +8,9 @@ class Linear(Bot):
 	def take_turn(self):
 		return self.game.make_move(self.game.lower)
 	
+	def update(self):
+		pass
+	
 	def new_game(self):
 		pass
 

@@ -76,6 +76,7 @@ class GameClient(ABC):
 
 class GameTracker(ABC):
 	def __init__(self, n_players, points=None):
+		self._n_players = n_players
 		self.points = points or [0 for _ in range(n_players)]
 	
 	@abstractmethod

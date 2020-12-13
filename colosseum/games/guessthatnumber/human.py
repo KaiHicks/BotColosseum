@@ -11,6 +11,9 @@ class Human(Bot):
 		guess = int(get_input('> '))
 		return self.game.make_move(guess)
 	
+	def update(self):
+		pass
+	
 	def new_game(self):
 		log(f'New game, {self.game.lower}-{self.game.upper-1}')
 
