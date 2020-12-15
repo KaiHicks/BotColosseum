@@ -5,7 +5,7 @@ from progress.bar import FillingSquaresBar
 from colosseum.games import dotsnboxes as dnb
 from colosseum.games import guessthatnumber as gtn
 
-game = 'guessthatnumber'
+game = 'dotsnboxes'
 
 if game == 'guessthatnumber':
 	players = [

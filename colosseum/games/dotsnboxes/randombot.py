@@ -2,7 +2,8 @@ import random
 from itertools import product
 
 from colosseum.games.bot import Bot
-from colosseum.games.dotsnboxes import DnBTracker, Move
+from colosseum.games.dotsnboxes import DnBTracker
+from colosseum.games.dotsnboxes.tracker import Move
 
 class RandomBot(Bot):
 	"""
