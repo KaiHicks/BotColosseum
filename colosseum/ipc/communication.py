@@ -48,7 +48,7 @@ class CommunicationManager(ABC):
 	def close(self):
 		if self._closed:
 			return
-		self.close()
+		self._close()
 		self._closed = True
 	
 	@abstractmethod
