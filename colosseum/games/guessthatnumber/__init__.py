@@ -78,8 +78,8 @@ class GTNHoster(GameHoster):
 		
 		for i, p in enumerate(self._players):
 			p.new_game(
-				{'playerid': i, 'n_players': len(self._players), 'lower': lower, 
-				'upper': upper}
+				{'playerid': i, 'n_players': len(self._players), 
+				'lower': lower, 'upper': upper}
 			)
 		
 		forfeited = set()

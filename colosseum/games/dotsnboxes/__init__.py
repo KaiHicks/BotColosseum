@@ -9,15 +9,17 @@ wins.
 """
 
 import numpy as np
+from collections import namedtuple
 
 from colosseum.games.game import GameTracker, GameHoster
 
+Move = namedtuple('Move', ['player', 'horizontal', 'row', 'col'])
+
 class DnBTracker(GameTracker):
-	def __init__(self, n:int=5, playerid:int=-1):
+	def __init__(self, playerid:int=-1, n:int=5, **kwargs):
 		super().__init__(n_players=2)
 		"""
 		params:
-			n_players:int - Number of players
 			n:int=5 - Side length of the board
 			playerid:int=-1 - The id of the player that created this tracker. 
 				If the tracker was created by the host, the id is -1 (default).
@@ -27,15 +29,46 @@ class DnBTracker(GameTracker):
 		self._n = n
 		self._hlines = np.zeros(shape=(self._n, self._n-1))
 		self._vlines = np.zeros(shape=(self._n-1, self._n))
+		self._boxes = -np.ones(shape=(self._n-1, self._n-1), dtype=np.int32)
+		self._moves = 0
 		
+		self._playerid = playerid
+		self._latest_move = None
 		self._turn = 0
-		self._is_done = False
+	
+	# Getters
+	@property
+	def n(self)->int:
+		return self._n
+	
+	@property
+	def playerid(self)->int:
+		return self._playerid
+	
+	@property
+	def latest_move(self)->Move:
+		return self._latest_move
+	
+	@property
+	def moves(self)->int:
+		return self._moves
+	
+	@property
+	def whose_turn(self)->int:
+		return self._turn
+	
+	@property
+	def is_done(self)->bool:
+		return self._moves >= 2*(self._n-1)*(self._n-2)
+	
+	# Behavior
 	
 	def edges_left(self, row:int, col:int)->int:
 		"""
 		Returns the number of edges left to capture (row, col).
 		"""
-		assert 0 <= row <= self._n-1 and 0 <= col <= self._n-1
+		if not (0 <= row <= self._n-1 and 0 <= col <= self._n-1):
+			return -1
 		return 4 - (self._hlines[row][col] + self._hlines[row+1][col]
 			+ self._vlines[row][col] + self._vlines[row][col+1])
 	
@@ -79,23 +112,29 @@ class DnBTracker(GameTracker):
 		
 		pts_gained = 0
 		if horizontal:
-			pts_gained += 1 if self.edges_left(row-1, col) == 0 \
-				else 0
-			pts_gained += 1 if self.edges_left(row, col) == 0 \
-				else 0
+			otherrow = row-1
+			othercol = col
 		else:
-			pts_gained += 1 if self.edges_left(row, col-1) == 0 \
-				else 0
-			pts_gained += 1 if self.edges_left(row, col) == 0 \
-				else 0
+			otherrow = row
+			othercol = col-1
+		if self.edges_left(row, col) == 0:
+			pts_gained += 1
+			self._boxes[row, col] = player
+		if self.edges_left(otherrow, othercol) == 0:
+			pts_gained += 1
+			self._boxes[otherrow, othercol] = player
 		self.points[self._turn] += pts_gained
 		if not pts_gained:
 			self._turn = (self._turn + 1)%self._n_players
+		
+		self._moves += 1
+		self._latest_move = Move(player, horizontal, row, col)
 	
 	def render(self)->str:
 		"""
 		Renders a string representation of the board for printing
 		"""
+		# Start with the board
 		hline = '---'
 		vline = ' | '
 		dot = ' • '
@@ -105,50 +144,89 @@ class DnBTracker(GameTracker):
 		
 		lines1 = []
 		lines2 = []
+		# Prepare all even rows with horizontal lines
 		for line in self._hlines:
 			lines1.append(dot + dot.join(v2l(c, hline) for c in line) + dot)
-		for line in self._vlines:
-			lines2.append(blank.join(v2l(c, vline) for c in line))
+		# Prepare all odd rows with the vertical lines
+		for line, boxes in zip(self._vlines, self._boxes):
+			s = ''
+			for col, box in zip(line, boxes):
+				s += v2l(col, vline) + (blank if box < 0 else f' {box} ')
+			lines2.append(s)
 		
 		lines = [lines1[0],]
 		for l1, l2 in zip(lines1[1:], lines2):
 			lines.append(l2)
 			lines.append(l1)
 		
-		return '\n'.join(lines)
-	
-	@property
-	def whose_turn(self):
-		return self._turn
-	
-	@property
-	def is_done(self):
-		return self._is_done
+		board = '\n'.join(lines)
+		
+		# Now for the status
+		status = f'| Score: {self.points[0]}-{self.points[1]}   Player ' \
+			f'{self._turn}\'s turn |'
+		bars = f'+{"-"*(len(status)-2)}+'
+		
+		return '\n'.join([board, bars, status, bars])
 
 class DnBHoster(GameHoster):
-	def play(self, rows, cols)->DnBTracker:
+	def play(self, n:int=5)->DnBTracker:
 		"""
 		params:
-			upper:int - Exclusive upper bound of the secret number
-			lower:int=0 - Inclusive lower bound of the secret number
+			n:int=5 - Side length of the board
 		returns: 
-			GTNTracker - The GameTracker for this game
+			GTNTracker - The GameTracker for this game	
 		"""
-		game = DnBTracker(len(self._players))
+		game = DnBTracker(n=n, playerid=-1)
 		
 		for i, p in enumerate(self._players):
-			p.new_game({'playerid': i, 'n_players': len(self._players)})
+			p.new_game({'playerid': i, 'n': n})
+		
+		while not game.is_done:
+			player_id = game.whose_turn
+			player = self._players[player_id]
+			response = player.take_turn()
+			
+			# unpack response
+			try:
+				horizontal = response['horizontal']
+				row = response['row']
+				col = response['col']
+				if not (isinstance(horizontal, bool) and isinstance(row, int) 
+						and isinstance(col, int)):
+					raise KeyError()
+			except KeyError:
+				game.forfeit(player_id)
+				break
+			game.update(player=player_id, horizontal=horizontal, row=row, 
+				col=col)
+			self._broadcast(player=player_id, horizontal=horizontal, row=row, 
+				col=col)
 		
 		return game
 	
-	def _broadcast(self, player:int):
+	def _broadcast(self, **kwargs):
 		"""
 		Updates all players to the new gamestate. Called after every move. 
-		params:
-			player:int - The id of the player that made the guess
-			guess:int - The guess the bot made
-			higher:bool - If True, the true value is higher than the guess
-			correct: - If True, the guess was correct
 		"""
 		for p in self._players:
-			p.update(player=player)
+			p.update(**kwargs)
+
+# yeah, yeah, I know this is bad form since this is __init__.py
+# but it's just so convenient for testing purposes
+if __name__ == '__main__':
+	game = DnBTracker()
+	print(game.render())
+
+	moves = [
+		(True, 1, 2),
+		(False, 1, 2),
+		(True, 2, 2), 
+		(False, 1, 3)
+	]
+
+	while not game.is_done and moves:
+		move = moves.pop(0)
+		p = game.whose_turn
+		
+		game.update(p, *move)
+		print(game.render())
