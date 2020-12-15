@@ -15,6 +15,20 @@ from colosseum.games.game import GameTracker, GameHoster
 
 Move = namedtuple('Move', ['player', 'horizontal', 'row', 'col'])
 
+class ImmutableList:
+	"""
+	A wrapper for an array that exposes acceesses but not modifications.
+	
+	There will be ways to circumvent this through __getitem__ if the array is
+	multidimensional. However, you can always just modify self._a since python
+	has no formal access control. This is simply to discourage modifications. 
+	"""
+	def __init__(self, a):
+		self._a = a
+	
+	def __getitem__(self, i):
+		return self._a[i]
+
 class DnBTracker(GameTracker):
 	def __init__(self, playerid:int=-1, n:int=5, **kwargs):
 		super().__init__(n_players=2)
@@ -27,8 +41,8 @@ class DnBTracker(GameTracker):
 		assert n>1, f'n must be greater than 1 (given {n})!'
 		
 		self._n = n
-		self._hlines = np.zeros(shape=(self._n, self._n-1))
-		self._vlines = np.zeros(shape=(self._n-1, self._n))
+		self._hlines = np.zeros(shape=(self._n, self._n-1), dtype=np.int32)
+		self._vlines = np.zeros(shape=(self._n-1, self._n), dtype=np.int32)
 		self._boxes = -np.ones(shape=(self._n-1, self._n-1), dtype=np.int32)
 		self._moves = 0
 		
@@ -60,6 +74,31 @@ class DnBTracker(GameTracker):
 	@property
 	def is_done(self)->bool:
 		return self._moves >= 2*(self._n-1)*(self._n-2)
+	
+	@property
+	def hlines(self)->ImmutableList:
+		"""
+		Array containing the state of the horizontal lines (1 if filled in, 0 
+		otherwise)
+		"""
+		return ImmutableList(self._hlines)
+	
+	@property
+	def vlines(self)->ImmutableList:
+		"""
+		Array containing the state of the vertical lines (1 if filled in, 0 
+		otherwise)
+		"""
+		return ImmutableList(self._vlines)
+	
+	@property
+	def boxes(self)->ImmutableList:
+		"""
+		Array containing the state of the boxes --- captured or not. Each box
+		is -1 if it is uncaptured and if the box is captured, it will contain 
+		the id of the player that captured it
+		"""
+		return ImmutableList(self._boxes)
 	
 	# Behavior
 	

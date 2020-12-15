@@ -5,7 +5,7 @@ from progress.bar import FillingSquaresBar
 from colosseum.games import dotsnboxes as dnb
 from colosseum.games import guessthatnumber as gtn
 
-game = 'dotsnboxes'
+game = 'guessthatnumber'
 
 if game == 'guessthatnumber':
 	players = [
@@ -14,7 +14,7 @@ if game == 'guessthatnumber':
 		# 'colosseum.games.guessthatnumber.human',
 	]
 	hoster = gtn.GTNHoster(players)
-	start_game_args = (100)
+	start_game_args = (100,)
 elif game == 'dotsnboxes':
 	players = [
 		'colosseum.games.dotsnboxes.randombot',
