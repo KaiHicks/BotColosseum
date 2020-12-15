@@ -2,7 +2,7 @@ import random
 from itertools import cycle
 
 from .tracker import GTNTracker
-from colosseum.games.game import GameHoster
+from colosseum.games import GameHoster
 
 class GTNHoster(GameHoster):
 	def play(self, upper:int, lower:int=0)->GTNTracker:

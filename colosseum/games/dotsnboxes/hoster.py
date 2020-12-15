@@ -1,5 +1,5 @@
 from .tracker import DnBTracker
-from colosseum.games.game import GameHoster
+from colosseum.games import GameHoster
 
 class DnBHoster(GameHoster):
 	def play(self, n:int=5)->DnBTracker:

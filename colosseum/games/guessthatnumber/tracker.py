@@ -1,4 +1,4 @@
-from colosseum.games.game import GameTracker
+from colosseum.games import GameTracker
 
 class GTNTracker(GameTracker):
 	def __init__(self, n_players:int, upper:int, lower:int=0, playerid:int=-1):

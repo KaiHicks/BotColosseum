@@ -1,7 +1,7 @@
 import os
 import sys
 
-from .communication import CommunicationManager
+from .communication import CommunicationManager, ProcessDiedException
 
 class FileNoComs(CommunicationManager):
 	"""
@@ -15,15 +15,16 @@ class FileNoComs(CommunicationManager):
 		if write_fileno == -1:
 			write_fileno = sys.stdout.fileno()
 		
-		self._read = os.fdopen(read_fileno)
-		self._write = write_fileno
+		self._read = os.fdopen(read_fileno, 'r')
+		self._write = os.fdopen(write_fileno, 'w')
 	
-	def close(self):
+	def _close(self):
 		self._read.close()
-		os.close(self._write)
+		self._write.close()
 	
 	def _send_str(self, msg:str):
-		os.write(self._write, bytes(msg, 'UTF-8'))
+		self._write.write(msg)
+		self._write.flush()
 	
 	def _recv_str(self)->str:
 		while True:
@@ -31,4 +32,4 @@ class FileNoComs(CommunicationManager):
 			if msg:
 				return msg
 			else:
-				self.log(f'Received blank: {msg}')
+				raise ProcessDiedException

@@ -5,6 +5,9 @@ from abc import ABC, abstractmethod
 from numbers import Number
 from typing import Dict, Callable
 
+class ProcessDiedException(Exception):
+	...
+
 class TimeoutException(Exception):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -39,9 +42,17 @@ class CommunicationManager(ABC):
 				if commands is None else commands
 		else:
 			self._commands = {} if commands is None else commands
+		
+		self._closed = False
+	
+	def close(self):
+		if self._closed:
+			return
+		self.close()
+		self._closed = True
 	
 	@abstractmethod
-	def close(self):
+	def _close(self):
 		...
 	
 	def _log(self, *args, **kwargs):
@@ -89,9 +100,10 @@ class CommunicationManager(ABC):
 			msg = self._recv_str()
 			if not msg:
 				return msg
-		except TimeoutException as e:
-			print(e)
-			return None
+		except ProcessDiedException:
+			if self._is_child:
+				self._close()
+				exit(0)
 		if timeout:
 			signal.alarm(0)
 		

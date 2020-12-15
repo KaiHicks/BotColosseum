@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import numpy as np
 
-from colosseum.games.game import GameTracker
+from colosseum.games import GameTracker
 
 Move = namedtuple('Move', ['player', 'horizontal', 'row', 'col'])
 
@@ -12,7 +12,8 @@ class ImmutableArray:
 	
 	There will be ways to circumvent this through __getitem__ if the array is
 	multidimensional. However, you can always just modify self._a since python
-	has no formal access control. This is simply to discourage modifications. 
+	has no formal access control. The purpose of this class is simply to 
+	*discourage* modifications. 
 	"""
 	def __init__(self, a:np.ndarray):
 		self._a = a
