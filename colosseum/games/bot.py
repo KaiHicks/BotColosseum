@@ -2,7 +2,7 @@ import sys
 from abc import ABC, abstractmethod
 from typing import Callable, Dict
 
-from colosseum.games.ipc import FileNoComs
+from colosseum.ipc import FileNoComs
 
 pipeout_fileno = sys.stdout.fileno()
 pipein_fileno = sys.stdin.fileno()
@@ -65,6 +65,7 @@ class Bot(ABC):
 		self._register_commands({command: target})
 	
 	def _stop(self, **kwargs):
+		_coms.close()
 		exit(kwargs.get('eid', 0))
 	
 	def _update(self, **kwargs):

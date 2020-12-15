@@ -1,5 +1,4 @@
 import json
-import os
 import signal
 import sys
 from abc import ABC, abstractmethod
@@ -41,6 +40,10 @@ class CommunicationManager(ABC):
 		else:
 			self._commands = {} if commands is None else commands
 	
+	@abstractmethod
+	def close(self):
+		...
+	
 	def _log(self, *args, **kwargs):
 		kwargs['file'] = sys.stdout
 		print(*args, **kwargs)
@@ -60,6 +63,12 @@ class CommunicationManager(ABC):
 		Deregister the given command
 		"""
 		self._commands.pop(command)
+	
+	def log(self, *args, **kwargs):
+		if self._is_child:
+			self.send(log={'args': args, 'kwargs': kwargs})
+		else:
+			self._log(*args, **kwargs)
 	
 	def send(self, **kwargs):
 		self._send_str(json.dumps(kwargs)+'\n')
@@ -108,27 +117,6 @@ class CommunicationManager(ABC):
 	@abstractmethod
 	def _recv_str(self)->str:
 		...
-
-class FileNoComs(CommunicationManager):
-	"""
-	IPC via fileno i.e. pipes. 
-	"""
-	def __init__(self, is_child, read_fileno=-1, write_fileno=-1):
-		super().__init__(is_child)
-		
-		if read_fileno == -1:
-			read_fileno = sys.stdin.fileno()
-		if write_fileno == -1:
-			write_fileno = sys.stdout.fileno()
-		
-		self._read = os.fdopen(read_fileno)
-		self._write = write_fileno
 	
-	def _send_str(self, msg:str):
-		os.write(self._write, bytes(msg, 'UTF-8'))
-	
-	def _recv_str(self)->str:
-		while True:
-			msg = self._read.readline()
-			if msg:
-				return msg
+	def __del__(self):
+		self.close()

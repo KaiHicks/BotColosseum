@@ -4,7 +4,7 @@ import sys
 from abc import ABC, abstractmethod
 from typing import List
 
-from colosseum.games.ipc import FileNoComs
+from colosseum.ipc import FileNoComs
 
 class GameClient(ABC):
 	"""
@@ -48,9 +48,10 @@ class GameClient(ABC):
 	
 	def _kill_child(self):
 		"""
-		Kill the bot process
+		Kill the bot process and close the communication. 
 		"""
 		self._coms.send(**{'stop': {}})
+		self._coms.close()
 	
 	def take_turn(self)->dict:
 		"""
